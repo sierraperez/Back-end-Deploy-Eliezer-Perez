@@ -99,7 +99,16 @@ async function extractLeadData(conversation) {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(helmet());
+// Configuração de Segurança (Permite carregar o site e falar com a API)
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            "connect-src": ["'self'", "https://api.eliezerperez.com", "http://localhost:3001"],
+            "img-src": ["'self'", "data:", "https://eliezerperez.com"],
+        },
+    },
+}));
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(",").map((s) => s.trim())
@@ -215,14 +224,18 @@ const contactSchema = z.object({
 });
 
 app.post("/api/contact", rateLimit({ windowMs: 3600000, max: 5 }), async (req, res) => {
+    console.log("📩 Novo pedido de e-mail recebido de:", req.body.email);
     try {
         const validated = contactSchema.parse(req.body);
-        if (validated.hp) return res.status(400).send("Bot Detected");
+        if (validated.hp) {
+            console.warn("🛡️ Honeypot detetado! Bloqueando bot.");
+            return res.status(400).send("Bot Detected");
+        }
 
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST, 
             port: parseInt(process.env.SMTP_PORT || "465"),
-            secure: true, 
+            secure: true, // SSL para Hostinger Porta 465
             auth: { 
                 user: process.env.SMTP_USER, 
                 pass: process.env.SMTP_PASS 
@@ -239,7 +252,7 @@ app.post("/api/contact", rateLimit({ windowMs: 3600000, max: 5 }), async (req, r
 
         res.status(200).json({ message: "Sent!" });
     } catch (e) { 
-        console.error("Email Error:", e);
+        console.error("🔥 Email Error:", e.message);
         res.status(500).json({ error: "Failed to send email" }); 
     }
 });

@@ -89,11 +89,11 @@ const Contact: React.FC<{ onOpenMenu?: () => void }> = ({ onOpenMenu }) => {
             setErrorMsg(null);
 
             // 2. Appel à l'API backend sécurisée
-            const apiUrl =
-                (import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL.trim()) ||
-                "https://api.eliezerperez.com";
+            // Usar caminho relativo para testar localmente no porto 3001
+            const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+            const apiBase = isLocal ? "" : "https://api.eliezerperez.com";
 
-            const response = await fetch(`${apiUrl}/api/contact`, {
+            const response = await fetch(`${apiBase}/api/contact`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

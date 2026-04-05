@@ -45,8 +45,9 @@ const AIChatWidget: React.FC = () => {
 
         try {
             // Se estivermos em localhost, usamos o porto 3000. Caso contrário, usamos a API de produção.
+            // Usar caminho relativo para testar localmente no porto 3001
             const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-            const apiBase = isLocal ? "http://localhost:3001" : "https://api.eliezerperez.com";
+            const apiBase = isLocal ? "" : "https://api.eliezerperez.com";
             const endpoint = `${apiBase}/api/chat`;
 
             const response = await fetch(endpoint, {
