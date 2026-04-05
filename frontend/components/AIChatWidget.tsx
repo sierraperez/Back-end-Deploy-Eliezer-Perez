@@ -72,11 +72,20 @@ const AIChatWidget: React.FC = () => {
                 setLeadQualified(true);
                 // Usando a mesma base dinámica para o send-lead
                 const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-                const apiBase = isLocal ? "http://localhost:3001" : "https://api.eliezerperez.com";
+                const apiBase = isLocal ? "" : "https://api.eliezerperez.com";
+
+                // Enviar os dados da lead + o histórico completo da conversa
+                const fullPayload = {
+                    ...data.leadData,
+                    chat_history: [...messages, { role: 'assistant', content: data.reply }]
+                        .map(m => `${m.role === 'user' ? 'Cliente' : 'IA'}: ${m.content}`)
+                        .join('\n')
+                };
+
                 fetch(`${apiBase}/api/send-lead`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data.leadData)
+                    body: JSON.stringify(fullPayload)
                 }).catch(err => console.error("Auto-send failed", err));
             }
 
