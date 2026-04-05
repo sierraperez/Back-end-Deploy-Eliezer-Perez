@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        /* IE and Edge */
+        scrollbar-width: none;
+        /* Firefox */
+    }
+}
+
+@layer base {
+    body {
+        @apply bg-[#101922] overflow-x-hidden text-white;
+    }
+
+    .dark body {
+        @apply bg-[#101922];
+    }
+
+    html.light body {
+        @apply bg-[#f6f7f8];
+    }
+}
+
+/* Global smooth transition for theme changes */
+*,
+*::before,
+*::after {
+    transition-property: background-color, border-color, color, box-shadow, opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 700ms;
+}
+
+.fill-icon {
+    font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+:focus-visible {
+    outline: 2px solid #137fec;
+    outline-offset: 4px;
+}
+
+.shadow-glow {
+    box-shadow: 0 0 20px rgba(19, 127, 236, 0.3);
+}

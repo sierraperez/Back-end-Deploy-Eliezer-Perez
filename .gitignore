@@ -1,7 +1,9 @@
 node_modules/
 .env
-.npm
-dist/
-build/
-*.log
 .DS_Store
+*.log
+frontend/node_modules/
+frontend/dist/
+public_html/
+.npm/
+dist/

@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "AI Agent for Portfolio Lead Qualification",
   "type": "module",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node index.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -19,3 +19,4 @@
     "zod": "^3.24.1"
   }
 }
+
