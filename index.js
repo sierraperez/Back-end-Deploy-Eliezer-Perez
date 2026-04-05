@@ -72,6 +72,7 @@ const getDistPath = () => {
     const paths = [
         path.join(__dirname, "../Eliezer_perezfolio/frontend/dist"),
         path.join(__dirname, "../public_html"),
+        "/home/u270923587/domains/eliezerperez.com/public_html",
         path.join(__dirname, "public"),
     ];
     for (const p of paths) { if (fs.existsSync(p)) return p; }
