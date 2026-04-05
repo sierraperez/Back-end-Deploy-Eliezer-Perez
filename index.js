@@ -81,6 +81,14 @@ const getDistPath = () => {
 const distPath = getDistPath();
 app.use(express.static(distPath));
 
+app.get("/health", (req, res) => {
+    res.json({ status: "ok", message: "Backend is running on api.eliezerperez.com" });
+});
+
+app.get("/", (req, res) => {
+    res.json({ message: "Eliezer Perez API. Use /api/chat or /api/contact." });
+});
+
 const chatRequestSchema = z.object({
   conversation: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string() })),
   language: z.enum(["pt", "en", "fr", "es"])
