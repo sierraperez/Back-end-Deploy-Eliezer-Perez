@@ -127,17 +127,19 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 
 const corsOptions = {
     origin: (origin, cb) => {
-        // Allow same-origin (browser) or development-only bypass
-        if (!origin || (process.env.NODE_ENV !== "production" && origin.includes("localhost"))) {
+        // Allow same-origin or development-only bypass
+        if (!origin) {
             return cb(null, true);
         }
-        // Extra resilience for multiple localhost ports
-        if (origin.includes("localhost:") || origin.includes("127.0.0.1:")) {
+
+        // More robust localhost check
+        const isLocalhost = origin.includes("localhost") || origin.includes("127.0.0.1");
+        
+        if (isLocalhost || allowedOrigins.includes(origin)) {
             return cb(null, true);
         }
-        if (allowedOrigins.includes(origin)) {
-            return cb(null, true);
-        }
+
+        console.warn(`🚨 CORS blocked for origin: ${origin}`);
         return cb(new Error("Access blocked by CORS (Senior Security applied)"));
     },
     methods: ["POST", "GET", "OPTIONS"],
@@ -175,7 +177,7 @@ app.use(globalLimiter);
 app.use(express.json());
 
 // Serve Frontend Static Files (Hostinger All-in-One)
-const distPath = path.join(__dirname, "../frontend/dist");
+const distPath = path.join(__dirname, "../Eliezer_perezfolio/frontend/dist");
 app.use(express.static(distPath));
 
 // Validation schema
