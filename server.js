@@ -50,26 +50,32 @@ Regras de Ouro:
 
 Regra de Ouro: NUNCA mostres blocos de código, formatos JSON ou resumos técnicos diretamente ao utilizador no chat. Fala sempre de forma humana e conversacional.`;
 
-const EXTRACTION_SYSTEM_PROMPT = `És um assistente de extração de dados de leads.
-A tua tarefa é analisar a conversa e extrair os campos num formato JSON válido.
+const EXTRACTION_SYSTEM_PROMPT = `És um assistente de extração de dados de leads de alta precisão.
+A tua tarefa é analisar a conversa entre um utilizador e um assistente de IA para extrair todos os detalhes relevantes de uma lead num formato JSON válido.
 
-Regras:
-- Não inventes dados.
-- Se um campo é desconhecido, devolve uma string vazia "".
+Instruções:
+- Se um campo não foi mencionado ou é ambíguo, deixa-o vazio "".
+- Extrai o nome real, não placeholders.
+- O campo "interest" deve resumir o que o cliente quer (ex: "Automação de orçamentos", "Bot para WhatsApp").
+- O campo "pain_point" refere-se ao problema atual que eles têm.
+- Se o cliente mencionou o domínio do site da empresa, coloca-o em "company_domain".
 - O campo "source" deve ser sempre "portfolio_ai_agent".
-- Sê preciso e rigorosoo.`;
+- Lê toda a conversa para ver se as informações apareceram em momentos diferentes.`;
 
 // --- Lead Qualification Logic ---
 function isLeadQualified(leadData) {
     if (!leadData) return false;
     
-    // Simplificado: Se tivermos nome ou email + interesse, já é uma lead útil.
-    const hasContact = (leadData.email && leadData.email.trim() !== "") || (leadData.name && leadData.name.trim() !== "");
-    const hasInterest = leadData.interest && leadData.interest.length > 3;
+    // Critérios mais rigorosos: Precisamos de Nome, E-mail e Interesse claro.
+    const hasName = leadData.name && leadData.name.trim().length > 1;
+    const hasEmail = leadData.email && leadData.email.includes("@") && leadData.email.includes(".");
+    const hasInterest = leadData.interest && leadData.interest.trim().length > 5;
     
-    const qualified = Boolean(hasContact && hasInterest);
+    // Se tivermos as 3 bases, disparar o Webhook.
+    const qualified = Boolean(hasName && hasEmail && hasInterest);
+    
     if (qualified) {
-        console.log(`✅ Lead Qualificada: ${leadData.name || 'Sem nome'} (${leadData.email || 'Sem email'})`);
+        console.log(`✅ Lead Qualificada: ${leadData.name || 'Sem nome'} (${leadData.email || 'Sem e-mail'})`);
     }
     return qualified;
 }
@@ -220,6 +226,11 @@ app.post('/api/chat', rateLimit({ windowMs: 60000, max: 20 }), async (req, res) 
 
         const leadData = await extractLeadData(updatedConv);
         const leadReady = isLeadQualified(leadData);
+
+        if (leadData) {
+            console.log("📊 Dados Extraídos:", JSON.stringify(leadData, null, 2));
+            console.log("🎯 Lead Pronta?", leadReady);
+        }
 
         res.json({ reply, leadReady, leadData });
     } catch (error) {

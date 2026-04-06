@@ -110,9 +110,7 @@ const AIChatWidget: React.FC = () => {
                 const sendLeadResponse = await fetch(`${apiBase}/api/send-lead`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        leadData: fullPayload,
-                    }),
+                    body: JSON.stringify(fullPayload),
                 });
 
                 const sendLeadData = await sendLeadResponse.json();
