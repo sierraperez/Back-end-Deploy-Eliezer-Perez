@@ -22,7 +22,15 @@ const AIChatWidget: React.FC = () => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    const getApiBase = () => {
+        const isLocal =
+            window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1';
+
+        return isLocal ? '' : 'https://api.eliezerperez.com';
     };
 
     useEffect(() => {
@@ -36,74 +44,95 @@ const AIChatWidget: React.FC = () => {
     }, [messages, isTyping]);
 
     const handleSend = async () => {
-        if (!inputValue.trim()) return;
+        const trimmed = inputValue.trim();
+        if (!trimmed || isTyping) return;
 
-        const userMessage: Message = { role: 'user', content: inputValue };
-        setMessages(prev => [...prev, userMessage]);
+        const userMessage: Message = {
+            role: 'user',
+            content: trimmed,
+        };
+
+        const updatedConversation: Message[] = [...messages, userMessage];
+
+        setMessages(updatedConversation);
         setInputValue('');
         setIsTyping(true);
 
         try {
-            // No Vite, as chamadas para /api são redirecionadas automaticamente para o backend se estivermos em modo dev.
-            // Para produção, usamos o domínio da API se estiver disponível.
-            const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-            const apiBase = isLocal ? "" : "https://api.eliezerperez.com";
+            const apiBase = getApiBase();
             const endpoint = `${apiBase}/api/chat`;
 
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    conversation: [...messages, userMessage],
-                    language: language
-                })
+                    conversation: updatedConversation,
+                    metadata: {
+                        page_url: window.location.href,
+                        referrer: document.referrer,
+                        user_agent: navigator.userAgent,
+                    },
+                }),
             });
 
             if (!response.ok) {
                 console.error(`Chat API error: ${response.status} ${response.statusText}`);
-                throw new Error("Chat failed");
+                throw new Error('Chat failed');
             }
 
             const data = await response.json();
 
-            setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+            const assistantReply: Message = {
+                role: 'assistant',
+                content: data.reply || 'Ocorreu um erro. Tenta novamente.',
+            };
+
+            const finalConversation: Message[] = [...updatedConversation, assistantReply];
+            setMessages(finalConversation);
 
             if (data.leadReady && data.leadData && !leadQualified) {
                 setLeadQualified(true);
-                
-                // Deteção inteligente do domínio
-                const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-                const apiBase = isLocal ? "" : "https://api.eliezerperez.com";
 
-                console.log("🎯 Lead qualificada detectada! Tentando enviar para o webhook via backend...");
-                
-                // Enviar os dados da lead + o histórico completo da conversa formatado
+                console.log('Lead qualificada detectada. A enviar para backend...');
+
                 const fullPayload = {
                     ...data.leadData,
-                    chat_history: [...messages, { role: 'user', content: userMessage.content }, { role: 'assistant', content: data.reply }]
-                        .map(m => `${m.role === 'user' ? 'Cliente' : 'IA'}: ${m.content}`)
-                        .join('\n')
+                    source: data.leadData?.source || 'portfolio_ai_agent',
+                    page_url: window.location.href,
+                    referrer: document.referrer,
+                    user_agent: navigator.userAgent,
+                    full_conversation: finalConversation,
+                    chat_history: finalConversation
+                        .map((m) => `${m.role === 'user' ? 'Cliente' : 'IA'}: ${m.content}`)
+                        .join('\n'),
                 };
 
-                fetch(`${apiBase}/api/send-lead`, {
+                const sendLeadResponse = await fetch(`${apiBase}/api/send-lead`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(fullPayload)
-                })
-                .then(async res => {
-                    const resData = await res.json();
-                    if (res.ok) {
-                        console.log("✅ Lead enviada com sucesso para o n8n!", resData);
-                    } else {
-                        console.error("❌ Erro ao enviar lead para o n8n:", resData);
-                    }
-                })
-                .catch(err => console.error("🚨 Falha total no auto-send:", err));
-            }
+                    body: JSON.stringify({
+                        leadData: fullPayload,
+                    }),
+                });
 
+                const sendLeadData = await sendLeadResponse.json();
+
+                if (sendLeadResponse.ok) {
+                    console.log('Lead enviada com sucesso para o n8n!', sendLeadData);
+                } else {
+                    console.error('Erro ao enviar lead para o n8n:', sendLeadData);
+                }
+            }
         } catch (error) {
-            console.error("AIChatWidget Error Details:", error);
-            setMessages(prev => [...prev, { role: 'assistant', content: "Ocorreu um erro. Por favor tente novamente. / An error occurred. Please try again." }]);
+            console.error('AIChatWidget Error Details:', error);
+
+            setMessages((prev) => [
+                ...prev,
+                {
+                    role: 'assistant',
+                    content: 'Ocorreu um erro. Por favor tenta novamente. / An error occurred. Please try again.',
+                },
+            ]);
         } finally {
             setIsTyping(false);
         }
@@ -111,26 +140,31 @@ const AIChatWidget: React.FC = () => {
 
     return (
         <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end">
-            {/* Chat Window */}
             {isOpen && (
-                <div className={`mb-4 w-[350px] md:w-[400px] h-[550px] rounded-[32px] overflow-hidden flex flex-col border shadow-2xl transition-all duration-300 animate-in slide-in-from-bottom-5 fade-in ${theme === 'dark'
-                        ? 'bg-[#05080a]/95 backdrop-blur-2xl border-white/10'
-                        : 'bg-white/95 backdrop-blur-2xl border-slate-200'
-                    }`}>
-                    {/* Header */}
+                <div
+                    className={`mb-4 w-[350px] md:w-[400px] h-[550px] rounded-[32px] overflow-hidden flex flex-col border shadow-2xl transition-all duration-300 animate-in slide-in-from-bottom-5 fade-in ${theme === 'dark'
+                            ? 'bg-[#05080a]/95 backdrop-blur-2xl border-white/10'
+                            : 'bg-white/95 backdrop-blur-2xl border-slate-200'
+                        }`}
+                >
                     <div className="p-6 border-b border-slate-100 dark:border-white/5 bg-primary/5 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="size-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-glow">
                                 <span className="material-symbols-outlined text-[20px]">smart_toy</span>
                             </div>
                             <div>
-                                <h3 className="text-sm font-black uppercase tracking-tighter text-slate-900 dark:text-white leading-none mb-1">AI Consultant</h3>
+                                <h3 className="text-sm font-black uppercase tracking-tighter text-slate-900 dark:text-white leading-none mb-1">
+                                    AI Consultant
+                                </h3>
                                 <div className="flex items-center gap-1.5">
                                     <span className="size-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                    <span className="text-[9px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest">Active Now</span>
+                                    <span className="text-[9px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest">
+                                        Active Now
+                                    </span>
                                 </div>
                             </div>
                         </div>
+
                         <button
                             onClick={() => setIsOpen(false)}
                             className="size-10 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 dark:text-slate-500 transition-all active:scale-90"
@@ -139,32 +173,42 @@ const AIChatWidget: React.FC = () => {
                         </button>
                     </div>
 
-                    {/* Messages */}
                     <div className="flex-1 overflow-y-auto p-6 space-y-5 no-scrollbar">
                         {messages.map((m, i) => (
-                            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2 duration-400`}>
-                                <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${m.role === 'user'
-                                        ? 'bg-primary text-white font-medium rounded-tr-none'
-                                        : theme === 'dark'
-                                            ? 'bg-white/5 text-slate-200 border border-white/5 rounded-tl-none font-medium'
-                                            : 'bg-slate-100 text-slate-800 rounded-tl-none border border-slate-200/50 font-medium'
-                                    }`}>
+                            <div
+                                key={i}
+                                className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'
+                                    } animate-in fade-in slide-in-from-bottom-2 duration-400`}
+                            >
+                                <div
+                                    className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${m.role === 'user'
+                                            ? 'bg-primary text-white font-medium rounded-tr-none'
+                                            : theme === 'dark'
+                                                ? 'bg-white/5 text-slate-200 border border-white/5 rounded-tl-none font-medium'
+                                                : 'bg-slate-100 text-slate-800 rounded-tl-none border border-slate-200/50 font-medium'
+                                        }`}
+                                >
                                     {m.content}
                                 </div>
                             </div>
                         ))}
+
                         {isTyping && (
                             <div className="flex justify-start">
-                                <div className={`px-4 py-2 rounded-2xl rounded-tl-none text-[8px] font-black uppercase tracking-[0.2em] animate-pulse ${theme === 'dark' ? 'bg-white/5 text-slate-500' : 'bg-slate-100 text-slate-400'
-                                    }`}>
+                                <div
+                                    className={`px-4 py-2 rounded-2xl rounded-tl-none text-[8px] font-black uppercase tracking-[0.2em] animate-pulse ${theme === 'dark'
+                                            ? 'bg-white/5 text-slate-500'
+                                            : 'bg-slate-100 text-slate-400'
+                                        }`}
+                                >
                                     {t.chatStatus}
                                 </div>
                             </div>
                         )}
+
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Input */}
                     <div className="p-4 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-transparent">
                         <div className="relative flex items-center gap-2">
                             <input
@@ -173,8 +217,14 @@ const AIChatWidget: React.FC = () => {
                                 className="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-primary/40 rounded-2xl px-5 py-4 pr-14 text-sm outline-none transition-all dark:text-white shadow-inner"
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        handleSend();
+                                    }
+                                }}
                             />
+
                             <button
                                 onClick={handleSend}
                                 disabled={!inputValue.trim() || isTyping}
@@ -187,18 +237,25 @@ const AIChatWidget: React.FC = () => {
                 </div>
             )}
 
-            {/* Toggle Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`size-16 rounded-[24px] flex items-center justify-center text-white shadow-2xl transition-all duration-500 hover:scale-105 active:scale-95 group relative overflow-hidden ${isOpen ? 'bg-slate-900 border border-white/10 shadow-none scale-90' : 'bg-primary shadow-primary/40'
+                className={`size-16 rounded-[24px] flex items-center justify-center text-white shadow-2xl transition-all duration-500 hover:scale-105 active:scale-95 group relative overflow-hidden ${isOpen
+                        ? 'bg-slate-900 border border-white/10 shadow-none scale-90'
+                        : 'bg-primary shadow-primary/40'
                     }`}
                 aria-label="Toggle AI Chat"
             >
                 <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <span className={`material-symbols-outlined text-[28px] transition-all duration-500 ${isOpen ? 'rotate-90 opacity-0 scale-0' : 'rotate-0 opacity-100 scale-100'}`}>
+                <span
+                    className={`material-symbols-outlined text-[28px] transition-all duration-500 ${isOpen ? 'rotate-90 opacity-0 scale-0' : 'rotate-0 opacity-100 scale-100'
+                        }`}
+                >
                     chat
                 </span>
-                <span className={`material-symbols-outlined text-[28px] absolute transition-all duration-500 ${isOpen ? 'rotate-0 opacity-100 scale-100' : '-rotate-90 opacity-0 scale-0'}`}>
+                <span
+                    className={`material-symbols-outlined text-[28px] absolute transition-all duration-500 ${isOpen ? 'rotate-0 opacity-100 scale-100' : '-rotate-90 opacity-0 scale-0'
+                        }`}
+                >
                     close
                 </span>
             </button>
