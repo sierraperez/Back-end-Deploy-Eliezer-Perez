@@ -75,10 +75,12 @@ const AIChatWidget: React.FC = () => {
                 const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
                 const apiBase = isLocal ? "" : "https://api.eliezerperez.com";
 
+                console.log("🎯 Lead qualificada detectada! Tentando enviar para o webhook via backend...");
+                
                 // Enviar os dados da lead + o histórico completo da conversa formatado
                 const fullPayload = {
                     ...data.leadData,
-                    chat_history: [...messages, { role: 'assistant', content: data.reply }]
+                    chat_history: [...messages, { role: 'user', content: userMessage.content }, { role: 'assistant', content: data.reply }]
                         .map(m => `${m.role === 'user' ? 'Cliente' : 'IA'}: ${m.content}`)
                         .join('\n')
                 };
@@ -87,7 +89,16 @@ const AIChatWidget: React.FC = () => {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(fullPayload)
-                }).catch(err => console.error("Auto-send failed", err));
+                })
+                .then(async res => {
+                    const resData = await res.json();
+                    if (res.ok) {
+                        console.log("✅ Lead enviada com sucesso para o n8n!", resData);
+                    } else {
+                        console.error("❌ Erro ao enviar lead para o n8n:", resData);
+                    }
+                })
+                .catch(err => console.error("🚨 Falha total no auto-send:", err));
             }
 
         } catch (error) {

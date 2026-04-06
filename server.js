@@ -57,14 +57,21 @@ Regras:
 - Não inventes dados.
 - Se um campo é desconhecido, devolve uma string vazia "".
 - O campo "source" deve ser sempre "portfolio_ai_agent".
-- Sê preciso e rigoroso.`;
+- Sê preciso e rigorosoo.`;
 
 // --- Lead Qualification Logic ---
 function isLeadQualified(leadData) {
     if (!leadData) return false;
-    const hasRequiredFields = leadData.interest && leadData.pain_point && leadData.goal;
-    const hasContact = leadData.email || leadData.name;
-    return Boolean(hasRequiredFields && hasContact);
+    
+    // Simplificado: Se tivermos nome ou email + interesse, já é uma lead útil.
+    const hasContact = (leadData.email && leadData.email.trim() !== "") || (leadData.name && leadData.name.trim() !== "");
+    const hasInterest = leadData.interest && leadData.interest.length > 3;
+    
+    const qualified = Boolean(hasContact && hasInterest);
+    if (qualified) {
+        console.log(`✅ Lead Qualificada: ${leadData.name || 'Sem nome'} (${leadData.email || 'Sem email'})`);
+    }
+    return qualified;
 }
 
 async function extractLeadData(conversation) {
@@ -181,11 +188,14 @@ app.use(express.static(distPath));
 app.get("/health", (req, res) => {
     res.json({
         status: "ok",
-        message: "SERVER IS RUNNING (V2)",
+        message: "SERVER IS RUNNING (WEBHOOK OPTIMIZED)",
         host: req.get('host'),
+        node_version: process.version,
         env_vars_status: {
             openai: !!process.env.OPENAI_API_KEY,
-            smtp: !!process.env.SMTP_HOST
+            smtp: !!process.env.SMTP_HOST,
+            webhook_configured: !!process.env.N8N_WEBHOOK_URL,
+            webhook_url_preview: process.env.N8N_WEBHOOK_URL ? `${process.env.N8N_WEBHOOK_URL.substring(0, 15)}...` : "not set"
         }
     });
 });
@@ -228,8 +238,20 @@ app.post('/api/send-lead', async (req, res) => {
 
         const webhookUrl = process.env.N8N_WEBHOOK_URL;
         if (!webhookUrl) {
-            console.warn("N8N_WEBHOOK_URL is not set.");
-            return res.json({ success: true, skipped: true, message: "Webhook not set" });
+            console.warn("⚠️ N8N_WEBHOOK_URL is not set in environment.");
+            return res.json({ success: false, message: "Webhook URL missing" });
+        }
+
+        console.log(`📤 Enviando lead para o n8n... (${webhookUrl})`);
+
+        // Check for fetch availability (Node 18+)
+        if (typeof fetch === 'undefined') {
+            console.error("❌ Erro: 'fetch' não está definido. Por favor utilize Node.js 18+ ou superior na Hostinger.");
+            return res.status(500).json({ 
+                success: false, 
+                error: "Node version too old", 
+                details: "Server needs Node.js 18+ to use native fetch." 
+            });
         }
 
         const response = await fetch(webhookUrl, {
@@ -238,10 +260,19 @@ app.post('/api/send-lead', async (req, res) => {
             body: JSON.stringify(leadData)
         });
 
-        res.json({ success: response.ok, status: response.status });
+        const status = response.status;
+        console.log(`📡 Resposta do n8n: ${status}`);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`❌ Erro no Webhook n8n: ${status} - ${errorText}`);
+            return res.status(status).json({ success: false, status, details: errorText });
+        }
+
+        res.json({ success: true, status });
     } catch (error) {
-        console.error("Webhook Error:", error);
-        jsonError(res, 500, "Failed to send lead");
+        console.error("🔥 Erro Fatal no Webhook:", error);
+        jsonError(res, 500, "Failed to send lead", error.message);
     }
 });
 
