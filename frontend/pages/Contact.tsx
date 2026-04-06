@@ -89,7 +89,7 @@ const Contact: React.FC<{ onOpenMenu?: () => void }> = ({ onOpenMenu }) => {
             setErrorMsg(null);
 
             // 2. Appel à l'API backend sécurisée
-            // Usar caminho relativo para testar localmente no porto 3001
+            // No Vite, /api é proxied para o backend local (3001) automaticamente.
             const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
             const apiBase = isLocal ? "" : "https://api.eliezerperez.com";
 

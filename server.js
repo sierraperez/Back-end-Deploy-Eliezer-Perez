@@ -1,4 +1,3 @@
-// backend/server.js (Pure API Server for Hostinger)
 import express from "express";
 import nodemailer from "nodemailer";
 import cors from "cors";
@@ -35,14 +34,30 @@ const openai = new OpenAI({
 });
 
 // --- AI Prompts (Consolidated) ---
-const CHAT_SYSTEM_PROMPT = `És um consultor especializado em automação, workflows e soluções com IA para o portfólio de Eliezer Perez.
-O teu objetivo é qualificar leads, perceber problemas reais de negócio e recolher informação suficiente para uma proposta.
-Fala em português europeu (ou na língua que o utilizador falar), de forma clara, profissional e natural.
-Faz uma pergunta de cada vez. Evita respostas longas.
-Tenta perceber: problema real, objetivo, urgência, orçamento e ferramentas atuais.
-Quando tiveres contexto suficiente, encaminha para recolher contacto (Nome e Email).`;
+const CHAT_SYSTEM_PROMPT = `O teu objetivo é qualificar leads de forma humana e direta, seguindo RIGOROSAMENTE esta ordem de prioridade:
 
-const EXTRACTION_SYSTEM_PROMPT = `You are a data extraction assistant. Your job is to analyze the conversation and extract the required fields as structured JSON. Do not invent data.`;
+1. **Identificação**: Pergunta o NOME do utilizador e o que a sua EMPRESA faz. (Nunca assumas nomes, se não sabes, pergunta).
+2. **Diagnóstico**: Entende qual o PROBLEMA específico que querem resolver com IA ou Automação.
+3. **Logística**: Pergunta pelo PRAZO (urgência) e se têm um ORÇAMENTO aproximado.
+4. **Contacto**: Finaliza pedindo o EMAIL para o Eliezer enviar a proposta detalhada.
+
+Regras de Ouro:
+- NUNCA uses placeholders como "[teu nome]", "[empresa]" ou parênteses retos. Fala como um humano.
+- Faz apenas UMA pergunta por mensagem.
+- Sê muito breve (máximo 2 frases curtas por resposta).
+- NUNCA mostres JSON ou resumos técnicos diretamente ao utilizador.
+- Se o utilizador já deu uma informação, não a voltes a perguntar.
+
+Regra de Ouro: NUNCA mostres blocos de código, formatos JSON ou resumos técnicos diretamente ao utilizador no chat. Fala sempre de forma humana e conversacional.`;
+
+const EXTRACTION_SYSTEM_PROMPT = `És um assistente de extração de dados de leads.
+A tua tarefa é analisar a conversa e extrair os campos num formato JSON válido.
+
+Regras:
+- Não inventes dados.
+- Se um campo é desconhecido, devolve uma string vazia "".
+- O campo "source" deve ser sempre "portfolio_ai_agent".
+- Sê preciso e rigoroso.`;
 
 // --- Lead Qualification Logic ---
 function isLeadQualified(leadData) {
@@ -56,7 +71,7 @@ async function extractLeadData(conversation) {
     try {
         if (!process.env.OPENAI_API_KEY) return null;
         const formatted = conversation.map(c => `${c.role}: ${c.content}`).join('\n');
-        
+
         const res = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [
@@ -74,16 +89,22 @@ async function extractLeadData(conversation) {
                             name: { type: "string" },
                             email: { type: "string" },
                             company: { type: "string" },
+                            company_domain: { type: "string" },
                             interest: { type: "string" },
                             pain_point: { type: "string" },
                             goal: { type: "string" },
                             budget: { type: "string" },
                             urgency: { type: "string" },
                             tools_used: { type: "string" },
+                            conversation_summary: { type: "string" },
                             source: { type: "string" }
                         },
-                        required: ["name", "email", "company", "interest", "pain_point", "goal", "budget", "urgency", "tools_used", "source"],
-                        additionalProperties: false
+                        additionalProperties: false,
+                        required: [
+                            "name", "email", "company", "company_domain",
+                            "interest", "pain_point", "goal", "budget",
+                            "urgency", "tools_used", "conversation_summary", "source"
+                        ]
                     }
                 }
             }
@@ -99,7 +120,16 @@ async function extractLeadData(conversation) {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Configuração de Segurança (Permite carregar o site e falar com a API)
+// Helper to ensure JSON responses on errors
+const jsonError = (res, status, message, details = null) => {
+    return res.status(status).json({
+        success: false,
+        error: message,
+        details: details
+    });
+};
+
+// Configuração de Segurança
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -126,7 +156,7 @@ const corsOptions = {
     allowedHeaders: ["Content-Type"],
 };
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 
 // Serving Static Files
 const getDistPath = () => {
@@ -135,10 +165,10 @@ const getDistPath = () => {
         path.join(__dirname, "public"),
         path.join(__dirname, "../public_html"),
     ];
-    for (const p of paths) { 
+    for (const p of paths) {
         if (fs.existsSync(p)) {
             console.log("📂 Servindo ficheiros de:", p);
-            return p; 
+            return p;
         }
     }
     return paths[0];
@@ -149,8 +179,8 @@ app.use(express.static(distPath));
 // --- API Routes ---
 
 app.get("/health", (req, res) => {
-    res.json({ 
-        status: "ok", 
+    res.json({
+        status: "ok",
         message: "SERVER IS RUNNING (V2)",
         host: req.get('host'),
         env_vars_status: {
@@ -161,7 +191,7 @@ app.get("/health", (req, res) => {
 });
 
 const chatRequestSchema = z.object({
-    conversation: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string() })),
+    conversation: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1) })),
     language: z.enum(["pt", "en", "fr", "es"]).optional()
 });
 
@@ -169,37 +199,37 @@ app.post('/api/chat', rateLimit({ windowMs: 60000, max: 20 }), async (req, res) 
     console.log("📩 Novo pedido de Chat recebido!");
     try {
         const { conversation } = chatRequestSchema.parse(req.body);
-        console.log("💬 Mensagens na conversa:", conversation.length);
-        
+
         const chatResponse = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [{ role: "system", content: CHAT_SYSTEM_PROMPT }, ...conversation],
         });
-        
-        const reply = chatResponse.choices[0].message.content;
-        console.log("🤖 Resposta da IA gerada com sucesso.");
-        
+
+        const reply = chatResponse.choices[0].message.content || "Não consegui gerar uma resposta.";
         const updatedConv = [...conversation, { role: "assistant", content: reply }];
-        
+
         const leadData = await extractLeadData(updatedConv);
         const leadReady = isLeadQualified(leadData);
 
         res.json({ reply, leadReady, leadData });
     } catch (error) {
         console.error("🔥 Chat Error:", error.message);
-        res.status(500).json({ error: "An error occurred with the AI integration." });
+        if (error instanceof z.ZodError) {
+            return jsonError(res, 400, "Invalid request body", error.flatten());
+        }
+        jsonError(res, 500, "An error occurred with the AI integration.");
     }
 });
 
 app.post('/api/send-lead', async (req, res) => {
     try {
         const leadData = req.body;
-        if (!leadData) return res.status(400).json({ error: "No data" });
+        if (!leadData) return jsonError(res, 400, "No data");
 
         const webhookUrl = process.env.N8N_WEBHOOK_URL;
         if (!webhookUrl) {
             console.warn("N8N_WEBHOOK_URL is not set.");
-            return res.status(200).json({ success: true, message: "Webhook not set" });
+            return res.json({ success: true, skipped: true, message: "Webhook not set" });
         }
 
         const response = await fetch(webhookUrl, {
@@ -208,18 +238,18 @@ app.post('/api/send-lead', async (req, res) => {
             body: JSON.stringify(leadData)
         });
 
-        res.json({ success: response.ok });
+        res.json({ success: response.ok, status: response.status });
     } catch (error) {
         console.error("Webhook Error:", error);
-        res.status(500).json({ error: "Failed to send lead" });
+        jsonError(res, 500, "Failed to send lead");
     }
 });
 
 const contactSchema = z.object({
-    name: z.string().min(2), 
+    name: z.string().min(2),
     email: z.string().email(),
-    subject: z.string(), 
-    message: z.string(), 
+    subject: z.string().min(1),
+    message: z.string().min(1),
     hp: z.string().max(0).optional(),
 });
 
@@ -233,27 +263,30 @@ app.post("/api/contact", rateLimit({ windowMs: 3600000, max: 5 }), async (req, r
         }
 
         const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST, 
-            port: parseInt(process.env.SMTP_PORT || "465"),
-            secure: true, // SSL para Hostinger Porta 465
-            auth: { 
-                user: process.env.SMTP_USER, 
-                pass: process.env.SMTP_PASS 
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT || "465", 10),
+            secure: true,
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
             }
         });
 
         await transporter.sendMail({
-            from: process.env.SMTP_USER, 
+            from: process.env.SMTP_USER,
             to: process.env.CONTACT_EMAIL || process.env.SMTP_USER,
             replyTo: validated.email,
-            subject: `[Website Contact] ${validated.subject}`, 
+            subject: `[Website Contact] ${validated.subject}`,
             text: `From: ${validated.name}\nEmail: ${validated.email}\n\n${validated.message}`
         });
 
-        res.status(200).json({ message: "Sent!" });
-    } catch (e) { 
+        res.status(200).json({ success: true, message: "Sent!" });
+    } catch (e) {
         console.error("🔥 Email Error:", e.message);
-        res.status(500).json({ error: "Failed to send email" }); 
+        if (e instanceof z.ZodError) {
+            return jsonError(res, 400, "Invalid contact payload", e.flatten());
+        }
+        jsonError(res, 500, "Failed to send email");
     }
 });
 

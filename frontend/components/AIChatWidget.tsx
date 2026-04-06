@@ -44,8 +44,8 @@ const AIChatWidget: React.FC = () => {
         setIsTyping(true);
 
         try {
-            // Se estivermos em localhost, usamos o porto 3000. Caso contrário, usamos a API de produção.
-            // Usar caminho relativo para testar localmente no porto 3001
+            // No Vite, as chamadas para /api são redirecionadas automaticamente para o backend se estivermos em modo dev.
+            // Para produção, usamos o domínio da API se estiver disponível.
             const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
             const apiBase = isLocal ? "" : "https://api.eliezerperez.com";
             const endpoint = `${apiBase}/api/chat`;
@@ -68,13 +68,14 @@ const AIChatWidget: React.FC = () => {
 
             setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
 
-            if (data.leadReady && !leadQualified) {
+            if (data.leadReady && data.leadData && !leadQualified) {
                 setLeadQualified(true);
-                // Usando a mesma base dinámica para o send-lead
+                
+                // Deteção inteligente do domínio
                 const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
                 const apiBase = isLocal ? "" : "https://api.eliezerperez.com";
 
-                // Enviar os dados da lead + o histórico completo da conversa
+                // Enviar os dados da lead + o histórico completo da conversa formatado
                 const fullPayload = {
                     ...data.leadData,
                     chat_history: [...messages, { role: 'assistant', content: data.reply }]
