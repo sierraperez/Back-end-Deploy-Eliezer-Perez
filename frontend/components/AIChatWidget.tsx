@@ -136,21 +136,39 @@ const AIChatWidget: React.FC = () => {
         }
     };
 
+    // Lock scroll on mobile when chat is open
+    useEffect(() => {
+        if (isOpen && window.innerWidth < 640) {
+            document.body.style.overflow = 'hidden';
+            document.body.style.paddingRight = '0px'; 
+        } else {
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        };
+    }, [isOpen]);
+
     return (
-        <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end">
+        <>
+            {/* Chat Window */}
             {isOpen && (
                 <div
-                    className={`fixed inset-0 sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[420px] sm:h-[650px] 
-                    flex flex-col overflow-hidden shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] 
-                    animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-6 fade-in 
-                    z-[10000] rounded-none sm:rounded-[32px] border-none sm:border 
+                    className={`fixed inset-0 sm:inset-auto sm:bottom-20 sm:right-8 sm:w-[440px] 
+                    h-[100dvh] sm:h-[min(720px,calc(100vh-140px))] flex flex-col overflow-hidden shadow-2xl 
+                    transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] 
+                    animate-in slide-in-from-bottom sm:slide-in-from-bottom-12 fade-in 
+                    z-[10000] rounded-none sm:rounded-[32px] border-none sm:border
                     ${theme === 'dark'
-                            ? 'bg-[#05080a]/90 backdrop-blur-3xl border-white/10 text-white'
-                            : 'bg-white/90 backdrop-blur-3xl border-slate-200 text-slate-900'
+                            ? 'bg-[#05080a]/95 backdrop-blur-3xl border-white/10 text-white'
+                            : 'bg-white/95 backdrop-blur-3xl border-slate-200 text-slate-900'
                         }`}
+                    style={{ overscrollBehavior: 'contain' }}
                 >
                     {/* Header */}
-                    <div className="p-5 sm:p-6 border-b border-white/5 dark:border-white/5 bg-gradient-to-r from-primary/10 to-transparent flex items-center justify-between">
+                    <div className="p-5 sm:p-6 border-b border-white/5 dark:border-white/5 bg-gradient-to-r from-primary/10 to-transparent flex items-center justify-between shrink-0">
                         <div className="flex items-center gap-4">
                             <div className="relative">
                                 <div className="size-12 rounded-2xl bg-gradient-to-tr from-primary to-blue-400 flex items-center justify-center text-white shadow-glow animate-pulse-slow">
@@ -177,7 +195,8 @@ const AIChatWidget: React.FC = () => {
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 no-scrollbar bg-transparent">
+                    {/* Messages Container */}
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 no-scrollbar bg-transparent overscroll-contain">
                         {messages.map((m, i) => (
                             <div
                                 key={i}
@@ -214,12 +233,13 @@ const AIChatWidget: React.FC = () => {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    <div className="p-4 sm:p-5 border-t border-white/5 bg-white/5 backdrop-blur-md">
+                    {/* Footer Input Area */}
+                    <div className="p-4 sm:p-5 border-t border-white/5 bg-white/5 backdrop-blur-md shrink-0">
                         <div className="relative flex items-center gap-3">
                             <input
                                 type="text"
                                 placeholder={t.chatPlaceholder}
-                                className={`w-full bg-white/10 dark:bg-white/5 border border-white/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/10 rounded-2xl px-5 py-4 pr-16 text-sm outline-none transition-all shadow-inner ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
+                                className={`w-full bg-white/10 dark:bg-white/5 border border-white/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/10 rounded-2xl px-5 py-4 pr-16 text-base sm:text-sm outline-none transition-all shadow-inner ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
                                 onKeyDown={(e) => {
@@ -242,29 +262,32 @@ const AIChatWidget: React.FC = () => {
                 </div>
             )}
 
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className={`size-16 rounded-[28px] flex items-center justify-center text-white shadow-2xl transition-all duration-500 hover:scale-105 active:scale-95 group relative overflow-hidden ${isOpen
-                        ? 'bg-slate-900 border border-white/10 shadow-none scale-0 opacity-0 pointer-events-none'
-                        : 'bg-primary shadow-primary/40'
-                    } ${isOpen ? 'sm:scale-0' : 'scale-100'}`}
-                aria-label="Toggle AI Chat"
-            >
-                <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <span
-                    className={`material-symbols-outlined text-[30px] transition-all duration-500 ${isOpen ? 'rotate-90 opacity-0 scale-0' : 'rotate-0 opacity-100 scale-100'
-                        }`}
+            {/* Toggle Button Container */}
+            <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end">
+                <button
+                    onClick={() => setIsOpen(!isOpen)}
+                    className={`size-16 rounded-[28px] flex items-center justify-center text-white shadow-2xl transition-all duration-500 hover:scale-105 active:scale-95 group relative overflow-hidden ${isOpen
+                            ? 'opacity-0 scale-0 pointer-events-none'
+                            : 'bg-primary shadow-primary/40'
+                        } ${isOpen ? 'sm:scale-0' : 'scale-100'}`}
+                    aria-label="Toggle AI Chat"
                 >
-                    chat
-                </span>
-                <span
-                    className={`material-symbols-outlined text-[30px] absolute transition-all duration-500 ${isOpen ? 'rotate-0 opacity-100 scale-100' : '-rotate-90 opacity-0 scale-0'
-                        }`}
-                >
-                    close
-                </span>
-            </button>
-        </div>
+                    <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <span
+                        className={`material-symbols-outlined text-[30px] transition-all duration-500 ${isOpen ? 'rotate-90 opacity-0 scale-0' : 'rotate-0 opacity-100 scale-100'
+                            }`}
+                    >
+                        chat
+                    </span>
+                    <span
+                        className={`material-symbols-outlined text-[30px] absolute transition-all duration-500 ${isOpen ? 'rotate-0 opacity-100 scale-100' : '-rotate-90 opacity-0 scale-0'
+                            }`}
+                    >
+                        close
+                    </span>
+                </button>
+            </div>
+        </>
     );
 };
 
