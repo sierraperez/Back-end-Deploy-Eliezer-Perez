@@ -140,50 +140,56 @@ const AIChatWidget: React.FC = () => {
         <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end">
             {isOpen && (
                 <div
-                    className={`mb-4 w-[350px] md:w-[400px] h-[550px] rounded-[32px] overflow-hidden flex flex-col border shadow-2xl transition-all duration-300 animate-in slide-in-from-bottom-5 fade-in ${theme === 'dark'
-                            ? 'bg-[#05080a]/95 backdrop-blur-2xl border-white/10'
-                            : 'bg-white/95 backdrop-blur-2xl border-slate-200'
+                    className={`fixed inset-0 sm:inset-auto sm:bottom-24 sm:right-6 sm:w-[420px] sm:h-[650px] 
+                    flex flex-col overflow-hidden shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] 
+                    animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-6 fade-in 
+                    z-[10000] rounded-none sm:rounded-[32px] border-none sm:border 
+                    ${theme === 'dark'
+                            ? 'bg-[#05080a]/90 backdrop-blur-3xl border-white/10 text-white'
+                            : 'bg-white/90 backdrop-blur-3xl border-slate-200 text-slate-900'
                         }`}
                 >
-                    <div className="p-6 border-b border-slate-100 dark:border-white/5 bg-primary/5 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="size-10 rounded-2xl bg-primary flex items-center justify-center text-white shadow-glow">
-                                <span className="material-symbols-outlined text-[20px]">smart_toy</span>
+                    {/* Header */}
+                    <div className="p-5 sm:p-6 border-b border-white/5 dark:border-white/5 bg-gradient-to-r from-primary/10 to-transparent flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="relative">
+                                <div className="size-12 rounded-2xl bg-gradient-to-tr from-primary to-blue-400 flex items-center justify-center text-white shadow-glow animate-pulse-slow">
+                                    <span className="material-symbols-outlined text-[24px] fill-icon">smart_toy</span>
+                                </div>
+                                <span className="absolute -bottom-1 -right-1 size-3.5 rounded-full bg-green-500 border-2 border-white dark:border-[#05080a]"></span>
                             </div>
                             <div>
-                                <h3 className="text-sm font-black uppercase tracking-tighter text-slate-900 dark:text-white leading-none mb-1">
+                                <h3 className="text-base font-black uppercase tracking-tighter leading-none mb-1">
                                     AI Consultant
                                 </h3>
-                                <div className="flex items-center gap-1.5">
-                                    <span className="size-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                    <span className="text-[9px] font-black text-slate-500 dark:text-slate-500 uppercase tracking-widest">
-                                        Active Now
-                                    </span>
-                                </div>
+                                <p className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] opacity-80">
+                                    Expert System • Online
+                                </p>
                             </div>
                         </div>
 
                         <button
                             onClick={() => setIsOpen(false)}
-                            className="size-10 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 flex items-center justify-center text-slate-400 dark:text-slate-500 transition-all active:scale-90"
+                            className="size-11 rounded-2xl hover:bg-white/10 dark:hover:bg-white/10 flex items-center justify-center text-slate-400 transition-all active:scale-90"
+                            aria-label="Close Chat"
                         >
-                            <span className="material-symbols-outlined text-[20px]">close</span>
+                            <span className="material-symbols-outlined text-[24px]">close</span>
                         </button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-6 space-y-5 no-scrollbar">
+                    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 no-scrollbar bg-transparent">
                         {messages.map((m, i) => (
                             <div
                                 key={i}
                                 className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'
-                                    } animate-in fade-in slide-in-from-bottom-2 duration-400`}
+                                    } animate-in fade-in slide-in-from-bottom-3 duration-500`}
                             >
                                 <div
-                                    className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${m.role === 'user'
-                                            ? 'bg-primary text-white font-medium rounded-tr-none'
+                                    className={`max-w-[85%] p-4 rounded-2xl text-[13.5px] leading-relaxed shadow-sm transition-all hover:shadow-md ${m.role === 'user'
+                                            ? 'bg-primary text-white font-medium rounded-tr-none shadow-primary/20'
                                             : theme === 'dark'
-                                                ? 'bg-white/5 text-slate-200 border border-white/5 rounded-tl-none font-medium'
-                                                : 'bg-slate-100 text-slate-800 rounded-tl-none border border-slate-200/50 font-medium'
+                                                ? 'bg-white/5 text-slate-200 border border-white/10 rounded-tl-none font-medium'
+                                                : 'bg-slate-50 text-slate-800 rounded-tl-none border border-slate-200 font-medium'
                                         }`}
                                 >
                                     {m.content}
@@ -194,11 +200,12 @@ const AIChatWidget: React.FC = () => {
                         {isTyping && (
                             <div className="flex justify-start">
                                 <div
-                                    className={`px-4 py-2 rounded-2xl rounded-tl-none text-[8px] font-black uppercase tracking-[0.2em] animate-pulse ${theme === 'dark'
-                                            ? 'bg-white/5 text-slate-500'
-                                            : 'bg-slate-100 text-slate-400'
+                                    className={`px-4 py-2 rounded-2xl rounded-tl-none text-[9px] font-black uppercase tracking-[0.2em] animate-pulse flex items-center gap-2 ${theme === 'dark'
+                                            ? 'bg-white/5 text-primary'
+                                            : 'bg-slate-100 text-primary'
                                         }`}
                                 >
+                                    <span className="size-1.5 rounded-full bg-primary animate-bounce"></span>
                                     {t.chatStatus}
                                 </div>
                             </div>
@@ -207,12 +214,12 @@ const AIChatWidget: React.FC = () => {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    <div className="p-4 border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-transparent">
-                        <div className="relative flex items-center gap-2">
+                    <div className="p-4 sm:p-5 border-t border-white/5 bg-white/5 backdrop-blur-md">
+                        <div className="relative flex items-center gap-3">
                             <input
                                 type="text"
                                 placeholder={t.chatPlaceholder}
-                                className="w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 focus:border-primary/40 rounded-2xl px-5 py-4 pr-14 text-sm outline-none transition-all dark:text-white shadow-inner"
+                                className={`w-full bg-white/10 dark:bg-white/5 border border-white/10 focus:border-primary/50 focus:ring-4 focus:ring-primary/10 rounded-2xl px-5 py-4 pr-16 text-sm outline-none transition-all shadow-inner ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
                                 onKeyDown={(e) => {
@@ -226,9 +233,9 @@ const AIChatWidget: React.FC = () => {
                             <button
                                 onClick={handleSend}
                                 disabled={!inputValue.trim() || isTyping}
-                                className="absolute right-2 size-10 rounded-xl bg-primary text-white flex items-center justify-center disabled:opacity-30 disabled:grayscale transition-all active:scale-95 shadow-glow"
+                                className="absolute right-2 size-11 rounded-xl bg-primary text-white flex items-center justify-center disabled:opacity-30 disabled:grayscale transition-all hover:bg-primary-hover active:scale-95 shadow-glow"
                             >
-                                <span className="material-symbols-outlined text-[20px]">send</span>
+                                <span className="material-symbols-outlined text-[24px] fill-icon">send</span>
                             </button>
                         </div>
                     </div>
@@ -237,21 +244,21 @@ const AIChatWidget: React.FC = () => {
 
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`size-16 rounded-[24px] flex items-center justify-center text-white shadow-2xl transition-all duration-500 hover:scale-105 active:scale-95 group relative overflow-hidden ${isOpen
-                        ? 'bg-slate-900 border border-white/10 shadow-none scale-90'
+                className={`size-16 rounded-[28px] flex items-center justify-center text-white shadow-2xl transition-all duration-500 hover:scale-105 active:scale-95 group relative overflow-hidden ${isOpen
+                        ? 'bg-slate-900 border border-white/10 shadow-none scale-0 opacity-0 pointer-events-none'
                         : 'bg-primary shadow-primary/40'
-                    }`}
+                    } ${isOpen ? 'sm:scale-0' : 'scale-100'}`}
                 aria-label="Toggle AI Chat"
             >
-                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                 <span
-                    className={`material-symbols-outlined text-[28px] transition-all duration-500 ${isOpen ? 'rotate-90 opacity-0 scale-0' : 'rotate-0 opacity-100 scale-100'
+                    className={`material-symbols-outlined text-[30px] transition-all duration-500 ${isOpen ? 'rotate-90 opacity-0 scale-0' : 'rotate-0 opacity-100 scale-100'
                         }`}
                 >
                     chat
                 </span>
                 <span
-                    className={`material-symbols-outlined text-[28px] absolute transition-all duration-500 ${isOpen ? 'rotate-0 opacity-100 scale-100' : '-rotate-90 opacity-0 scale-0'
+                    className={`material-symbols-outlined text-[30px] absolute transition-all duration-500 ${isOpen ? 'rotate-0 opacity-100 scale-100' : '-rotate-90 opacity-0 scale-0'
                         }`}
                 >
                     close
