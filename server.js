@@ -53,29 +53,45 @@ Regra de Ouro: NUNCA mostres blocos de código, formatos JSON ou resumos técnic
 const EXTRACTION_SYSTEM_PROMPT = `És um assistente de extração de dados de leads de alta precisão.
 A tua tarefa é analisar a conversa entre um utilizador e um assistente de IA para extrair todos os detalhes relevantes de uma lead num formato JSON válido.
 
-Instruções:
-- Se um campo não foi mencionado ou é ambíguo, deixa-o vazio "".
-- Extrai o nome real, não placeholders.
+REGRAS CRÍTICAS:
+- NUNCA uses placeholders como "[Nome]", "[Nome da Empresa]", "[email]" ou qualquer texto entre parênteses retos.
+- Extrai APENAS valores reais mencionados explicitamente na conversa.
+- Se o nome real não foi mencionado, coloca "name": "".
+- Se o email real não foi mencionado, coloca "email": "".
+- Se a empresa real não foi mencionada, coloca "company": "".
+
+VALIDAÇÃO OBRIGATÓRIA:
+- Se "name" estiver vazio ("") ou for um placeholder, define "ready_to_send": false.
+- Se "email" estiver vazio ("") ou for um placeholder, define "ready_to_send": false.
+- Só define "ready_to_send": true se ambos name e email forem valores reais e válidos.
+
+Instruções de extracção:
 - O campo "interest" deve resumir o que o cliente quer (ex: "Automação de orçamentos", "Bot para WhatsApp").
-- O campo "pain_point" refere-se ao problema atual que eles têm.
+- O campo "pain_point" refere-se ao problema actual que eles têm.
+- O campo "goal" é o objectivo final que querem atingir.
+- O campo "budget" é o orçamento mencionado (ex: "2000-3000 euros", "sem orçamento definido").
+- O campo "urgency" é a urgência mencionada (ex: "Urgente", "1 mês", "sem prazo definido").
+- O campo "tools_used" são as ferramentas que já usam.
 - Se o cliente mencionou o domínio do site da empresa, coloca-o em "company_domain".
 - O campo "source" deve ser sempre "portfolio_ai_agent".
+- O campo "conversation_summary" deve ser um resumo claro de 2-3 frases do que o cliente quer.
 - Lê toda a conversa para ver se as informações apareceram em momentos diferentes.`;
 
 // --- Lead Qualification Logic ---
 function isLeadQualified(leadData) {
     if (!leadData) return false;
-    
-    // Critérios mais rigorosos: Precisamos de Nome, E-mail e Interesse claro.
+
     const hasName = leadData.name && leadData.name.trim().length > 1;
     const hasEmail = leadData.email && leadData.email.includes("@") && leadData.email.includes(".");
     const hasInterest = leadData.interest && leadData.interest.trim().length > 5;
-    
-    // Se tivermos as 3 bases, disparar o Webhook.
-    const qualified = Boolean(hasName && hasEmail && hasInterest);
-    
+    const isReady = leadData.ready_to_send === true;
+
+    const qualified = Boolean(hasName && hasEmail && hasInterest && isReady);
+
     if (qualified) {
-        console.log(`✅ Lead Qualificada: ${leadData.name || 'Sem nome'} (${leadData.email || 'Sem e-mail'})`);
+        console.log(`✅ Lead Qualificada: ${leadData.name} (${leadData.email})`);
+    } else {
+        console.log(`⏳ Lead incompleta - Nome: ${leadData.name || 'vazio'} | Email: ${leadData.email || 'vazio'} | Ready: ${isReady}`);
     }
     return qualified;
 }
@@ -110,13 +126,15 @@ async function extractLeadData(conversation) {
                             urgency: { type: "string" },
                             tools_used: { type: "string" },
                             conversation_summary: { type: "string" },
-                            source: { type: "string" }
+                            source: { type: "string" },
+                            ready_to_send: { type: "boolean" }
                         },
                         additionalProperties: false,
                         required: [
                             "name", "email", "company", "company_domain",
                             "interest", "pain_point", "goal", "budget",
-                            "urgency", "tools_used", "conversation_summary", "source"
+                            "urgency", "tools_used", "conversation_summary",
+                            "source", "ready_to_send"
                         ]
                     }
                 }
@@ -133,16 +151,11 @@ async function extractLeadData(conversation) {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Helper to ensure JSON responses on errors
 const jsonError = (res, status, message, details = null) => {
-    return res.status(status).json({
-        success: false,
-        error: message,
-        details: details
-    });
+    return res.status(status).json({ success: false, error: message, details });
 };
 
-// Configuração de Segurança
+// Segurança
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -171,7 +184,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: "1mb" }));
 
-// Serving Static Files
+// Ficheiros estáticos
 const getDistPath = () => {
     const paths = [
         path.join(__dirname, "frontend/dist"),
@@ -201,13 +214,18 @@ app.get("/health", (req, res) => {
             openai: !!process.env.OPENAI_API_KEY,
             smtp: !!process.env.SMTP_HOST,
             webhook_configured: !!process.env.N8N_WEBHOOK_URL,
-            webhook_url_preview: process.env.N8N_WEBHOOK_URL ? `${process.env.N8N_WEBHOOK_URL.substring(0, 15)}...` : "not set"
+            webhook_url_preview: process.env.N8N_WEBHOOK_URL
+                ? `${process.env.N8N_WEBHOOK_URL.substring(0, 15)}...`
+                : "not set"
         }
     });
 });
 
 const chatRequestSchema = z.object({
-    conversation: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().min(1) })),
+    conversation: z.array(z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().min(1)
+    })),
     language: z.enum(["pt", "en", "fr", "es"]).optional()
 });
 
@@ -247,21 +265,33 @@ app.post('/api/send-lead', async (req, res) => {
         const leadData = req.body;
         if (!leadData) return jsonError(res, 400, "No data");
 
+        // Validação: só envia se tiver nome real, email real e ready_to_send true
+        const hasName = leadData.name && leadData.name.trim().length > 1;
+        const hasEmail = leadData.email && leadData.email.includes("@") && leadData.email.includes(".");
+        const isReady = leadData.ready_to_send === true;
+
+        if (!hasName || !hasEmail || !isReady) {
+            console.log(`⛔ Lead bloqueada - Nome: ${leadData.name || 'vazio'} | Email: ${leadData.email || 'vazio'} | Ready: ${isReady}`);
+            return res.json({ success: false, message: "Lead incompleta - nome e email obrigatórios" });
+        }
+
+        // Remove o campo ready_to_send antes de enviar para o N8n
+        delete leadData.ready_to_send;
+
         const webhookUrl = process.env.N8N_WEBHOOK_URL;
         if (!webhookUrl) {
             console.warn("⚠️ N8N_WEBHOOK_URL is not set in environment.");
             return res.json({ success: false, message: "Webhook URL missing" });
         }
 
-        console.log(`📤 Enviando lead para o n8n... (${webhookUrl})`);
+        console.log(`📤 Enviando lead para o n8n: ${leadData.name} (${leadData.email})`);
 
-        // Check for fetch availability (Node 18+)
         if (typeof fetch === 'undefined') {
-            console.error("❌ Erro: 'fetch' não está definido. Por favor utilize Node.js 18+ ou superior na Hostinger.");
-            return res.status(500).json({ 
-                success: false, 
-                error: "Node version too old", 
-                details: "Server needs Node.js 18+ to use native fetch." 
+            console.error("❌ Erro: 'fetch' não está definido. Por favor utilize Node.js 18+.");
+            return res.status(500).json({
+                success: false,
+                error: "Node version too old",
+                details: "Server needs Node.js 18+ to use native fetch."
             });
         }
 
