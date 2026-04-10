@@ -148,6 +148,7 @@ export const translations = {
     performance: "PERFORMANCE",
     gains: "GAINS",
     projectDetails: "Détails du projet",
+    viewSite: "Voir le site",
     challenge: "Problématique",
     solution: "Solution",
     catWeb: "Web",
@@ -193,6 +194,14 @@ export const translations = {
     project5Role: "Full-Stack & Automation Developer",
     project5Details: "Centralisation des opérations et automatisation des notifications de rappel pour réduire les absences.",
     project5Resp: "Automatisations n8n des rappels\nDashboard client personnalisé\nSystème de facturation automatique\nPlanning dynamique intelligent\nMobile-first design",
+
+    project6Title: "Carina Da Silva — Bien-être",
+    project6Result: "+60% de réservations en ligne",
+    project6Challenge: "Absence de présence digitale et processus de réservation uniquement par téléphone, limitant la visibilité locale.",
+    project6Solution: "Création d'un site fullstack moderne avec réservation Calendly intégrée, galerie photo, blog et SEO local optimisé.",
+    project6Role: "Full-Stack Developer & Designer",
+    project6Details: "Développement complet d'un site vitrine professionnel pour une praticienne en drainage lymphatique Renata França et massages bien-être, avec backend Supabase, formulaire EmailJS et intégration Google Maps.",
+    project6Resp: "Design UI/UX sur-mesure\nIntégration Supabase backend\nSystème de réservation Calendly\nOptimisation SEO local\nDesign responsive mobile-first",
 
 
     // Experience
@@ -455,6 +464,7 @@ export const translations = {
     performance: "PERFORMANCE",
     gains: "GAINS",
     projectDetails: "Project details",
+    viewSite: "View site",
     challenge: "Challenge",
     solution: "Solution",
     catWeb: "Web",
@@ -541,6 +551,14 @@ export const translations = {
     project3Resp: "React frontend development\nNode.js backend architecture\nSQL query optimization\nUI/UX interface redesign\nDeployment on AWS",
     project4Resp: "Interactive menu design\nReal-time booking system\nGoogle Calendar synchronization\nRestaurant admin interface\nLocal SEO optimization",
     project5Resp: "n8n reminder automations\nCustom client dashboard\nAutomatic billing system\nSmart dynamic scheduling\nMobile-first design",
+
+    project6Title: "Carina Da Silva — Wellness",
+    project6Result: "+60% online bookings",
+    project6Challenge: "No digital presence and booking process only by phone, limiting local visibility.",
+    project6Solution: "Creation of a modern fullstack site with integrated Calendly booking, photo gallery, blog and optimized local SEO.",
+    project6Role: "Full-Stack Developer & Designer",
+    project6Details: "Complete development of a professional showcase site for a Renata França lymphatic drainage and wellness massage practitioner, with Supabase backend, EmailJS contact form and Google Maps integration.",
+    project6Resp: "Custom UI/UX design\nSupabase backend integration\nCalendly booking system\nLocal SEO optimization\nMobile-first responsive design",
 
     contactTitle: "Launch your project",
     contactHero: "Let's talk Business.",
@@ -852,6 +870,7 @@ export const translations = {
     performance: "PERFORMANCE",
     gains: "GANHOS",
     projectDetails: "Detalhes do projeto",
+    viewSite: "Ver o site",
     challenge: "Desafio",
     solution: "Solução",
     catWeb: "Web",
@@ -898,6 +917,13 @@ export const translations = {
     project5Details: "Centralização das operações e automação de notificações de lembrete para reduzir faltas.",
     project5Resp: "Automações de lembretes n8n\nDashboard cliente personalizado\nSistema de faturação automática\nAgendamento dinâmico inteligente\nDesign mobile-first",
 
+    project6Title: "Carina Da Silva — Bem-estar",
+    project6Result: "+60% de reservas online",
+    project6Challenge: "Ausência de presença digital e processo de reserva apenas por telefone, limitando a visibilidade local.",
+    project6Solution: "Criação de um site fullstack moderno com reserva Calendly integrada, galeria de fotos, blog e SEO local otimizado.",
+    project6Role: "Full-Stack Developer & Designer",
+    project6Details: "Desenvolvimento completo de um site vitrine profissional para uma praticante de drenagem linfática Renata França e massagens bem-estar, com backend Supabase, formulário EmailJS e integração Google Maps.",
+    project6Resp: "Design UI/UX sob medida\nIntegração Supabase backend\nSistema de reserva Calendly\nOtimização SEO local\nDesign responsivo mobile-first",
 
     expTitle: "O Meu Percurso",
     cvButton: "CV PDF",
@@ -1225,6 +1251,14 @@ export const translations = {
     project5Role: "Full-Stack & Automation Developer",
     project5Details: "Centralización de las operaciones y automatización de notificaciones de recordatorio para reducir ausencias.",
     project5Resp: "Automatizaciones n8n de recordatorios\nDashboard de cliente personalizado\nSistema de facturación automática\nAgenda dinámica inteligente\nDiseño mobile-first",
+
+    project6Title: "Carina Da Silva — Bienestar",
+    project6Result: "+60% de reservas online",
+    project6Challenge: "Ausencia de presencia digital y proceso de reserva solo por teléfono, limitando la visibilidad local.",
+    project6Solution: "Creación de un sitio fullstack moderno con reserva Calendly integrada, galería de fotos, blog y SEO local optimizado.",
+    project6Role: "Full-Stack Developer & Designer",
+    project6Details: "Desarrollo completo de un sitio vitrina profesional para una profesional de drenaje linfático Renata França y masajes bienestar, con backend Supabase, formulario EmailJS e integración Google Maps.",
+    project6Resp: "Diseño UI/UX a medida\nIntegración Supabase backend\nSistema de reserva Calendly\nOptimización SEO local\nDiseño responsivo mobile-first",
 
     rolesLabel: "Roles y Responsabilidades",
     stackLabel: "Stack Tecnológico",

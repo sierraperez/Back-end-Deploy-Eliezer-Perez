@@ -26,6 +26,7 @@ interface Project {
     solutionKey: string;
     roleKey: string;
     detailsKey: string;
+    url?: string;
 }
 
 const Projects: React.FC<ProjectsProps> = ({ onOpenMenu }) => {
@@ -115,6 +116,23 @@ const Projects: React.FC<ProjectsProps> = ({ onOpenMenu }) => {
             solutionKey: t.project5Solution,
             roleKey: t.project5Role,
             detailsKey: t.project5Details
+        },
+        {
+            id: '6',
+            title: t.project6Title,
+            category: 'Web',
+            image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&q=80&w=800',
+            tags: ['React', 'Supabase', 'Calendly'],
+            detailedStack: ['React', 'Supabase', 'EmailJS', 'Google Maps API', 'Calendly', 'Vite'],
+            resultLabelKey: 'growth',
+            resultValue: t.project6Result,
+            impactColor: 'emerald',
+            impactIcon: 'spa',
+            challengeKey: t.project6Challenge,
+            solutionKey: t.project6Solution,
+            roleKey: t.project6Role,
+            detailsKey: t.project6Details,
+            url: 'https://www.carina-dasilva.com'
         }
     ];
 
@@ -306,12 +324,27 @@ const Projects: React.FC<ProjectsProps> = ({ onOpenMenu }) => {
                                     </section>
                                 </div>
 
-                                <button
-                                    onClick={() => navigate('/contact')}
-                                    className="h-14 mt-12 bg-primary text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-glow hover:scale-[1.02] active:scale-95 transition-all"
-                                >
-                                    {t.startProject}
-                                </button>
+                                
+                                <div className="flex gap-4 mt-12">
+                                    {selectedProject.url && (
+                                        <a
+                                            href={selectedProject.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex-1 h-14 bg-primary text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-glow hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                                        >
+                                            <span className="material-symbols-outlined text-lg">open_in_new</span>
+                                            {t.viewSite || 'Voir le site'}
+                                        </a>
+                                    )}
+                                    <button
+                                        onClick={() => navigate('/contact')}
+                                        className={`${selectedProject.url ? 'flex-1' : 'w-full'} h-14 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-primary dark:hover:bg-primary dark:hover:text-white active:scale-95 transition-all flex items-center justify-center gap-3 shadow-xl`}
+                                    >
+                                        <span className="material-symbols-outlined text-lg">rocket_launch</span>
+                                        {t.startProject}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
