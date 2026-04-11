@@ -21,7 +21,7 @@ export const translations = {
     // Home
     heroTitle: "Gagnez jusqu'à 15h par semaine grâce à l'automatisation et au web intelligent",
     heroSubtitle: "Automatisation des processus métier et développement web pour PME françaises",
-    heroReassurance: "Audit & Mise en place offerte — Paiement après 30 jours — Sans engagement",
+    heroReassurance: "Audit & Mise en place offerte",
     caseStudies: "Études de cas",
     launchProject: "Lancer un projet",
     gainTime: "Gain de temps moyen",
